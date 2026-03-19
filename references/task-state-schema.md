@@ -1,13 +1,13 @@
-# Task State Schema
+# 状态文件结构建议
 
-Use this as the minimum durable shape.
+推荐最低结构如下：
 
 ```json
 {
   "tasks": [
     {
       "task_id": "task-20260319-001",
-      "objective": "Refresh formal fund universe and verify readiness",
+      "objective": "刷新正式基金池并校验 readiness",
       "status": "running",
       "started_at": "2026-03-19T15:00:00+08:00",
       "updated_at": "2026-03-19T15:05:00+08:00",
@@ -20,16 +20,14 @@ Use this as the minimum durable shape.
       "executor": "subagent",
       "session_key": "agent:main:subagent:xxxx",
       "process_id": null,
-      "notes": "Waiting for verification",
+      "notes": "等待验证完成",
       "result_summary": null
     }
   ]
 }
 ```
 
-## Status values
-
-Recommended values:
+## 推荐状态枚举
 
 - `queued`
 - `running`
@@ -39,18 +37,18 @@ Recommended values:
 - `failed`
 - `cancelled`
 
-## Cleanup rule
+## 清理规则
 
-- one-shot tasks: remove from active registry after successful completion, or mark `completed`
-- recurring tasks: keep active and keep `updated_at` fresh
+- 一次性任务：成功后移出活跃队列，或标记 `completed`
+- 常驻任务：保留，并持续刷新 `updated_at`
 
-## Queryability rule
+## 可查询性要求
 
-A new session should be able to answer:
+新的会话必须能够只依赖状态文件回答这些问题：
 
-- what is running
-- what failed
-- what finished
-- where to resume
+- 现在有哪些任务在跑
+- 哪些任务失败了
+- 哪些任务完成了
+- 从哪里继续恢复
 
-without needing old chat history.
+不能依赖旧聊天历史才能还原任务状态。

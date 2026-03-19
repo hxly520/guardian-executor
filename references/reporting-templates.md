@@ -1,6 +1,6 @@
-# Reporting Templates
+# 回报模板
 
-## Kickoff
+## 启动回报
 
 ```text
 已开始处理。
@@ -10,17 +10,17 @@
 - 完成后我会回：结果、验证、commit、blocker
 ```
 
-## Mid-progress
+## 中途进度
 
 ```text
 进度更新：
 - 当前阶段：<stage>
 - 已完成：<done>
 - 正在执行：<running>
-- 如有风险：<risk or none>
+- 风险：<risk or none>
 ```
 
-## Completion
+## 完成回报
 
 ```text
 完成了。
@@ -30,7 +30,7 @@
 - blocker：<none or details>
 ```
 
-## Failure
+## 失败回报
 
 ```text
 这轮还没完成。

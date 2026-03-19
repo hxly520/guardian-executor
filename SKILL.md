@@ -1,134 +1,129 @@
 ---
 name: guardian-executor
 description: Default detached execution workflow for long-running, multi-step, or failure-prone tasks. Use when code changes, scripts, data syncs, builds, migrations, service operations, or backfills should run in a guarded execution unit with durable status tracking, completion reporting, and cleanup.
+homepage: https://github.com/hxly520/guardian-executor
 metadata: {"clawdbot":{"emoji":"🛡️"}}
 ---
 
 # Guardian Executor
 
-Use this skill as the **default execution mode** for non-trivial work.
+把这个 skill 作为 **非瞬时任务的默认执行模式**。
 
-## When to use
+## 什么时候用
 
-Use `guardian-executor` when the task is any of the following:
+当任务满足以下任一特征时，优先触发 `guardian-executor`：
 
-- longer than a short conversational turn
-- likely to involve multiple tool calls
-- likely to modify code or files
-- likely to run scripts / build / test / sync / backfill / restart services
-- likely to fail intermittently and need retries
-- important enough that status must survive chat interruption
-- explicitly requested to run in background / detached / guardian style
+- 任务长度超过一个短交互回合
+- 预计会涉及多次工具调用
+- 需要修改代码或文件
+- 需要运行脚本 / 构建 / 测试 / 同步 / 回填 / 服务控制
+- 容易被外部 API / 网络波动打断
+- 用户明确要求后台执行、守护执行、执行单元方式
+- 任务必须在聊天中断后仍能恢复
 
-Do not use it for quick read-only lookups or tiny one-shot edits.
+以下情况通常 **不要** 触发：
 
-## Core policy
+- 单次只读查询
+- 很短的纯问答
+- 几秒内结束的小改动
 
-For matching tasks, do **not** default to chat-bound inline execution.
-Default to a guarded execution unit instead.
+## 核心原则
 
-Preferred execution order:
+对于匹配的任务，**不要默认绑在当前聊天回合里硬跑**。  
+默认切换到守护式执行单元。
 
-1. **Existing project guardian / runtime task**
-   - Use when the project already has registered recurring tasks or a runtime daemon.
-2. **Sub-agent execution unit**
-   - Use `sessions_spawn` for coding / structured task execution that should report back when complete.
-3. **Background exec**
-   - Use only when direct host commands must continue independently and sub-agent execution is not the right fit.
+推荐优先级：
 
-## Required workflow
+1. **已有项目 guardian / runtime task**
+   - 项目本身已经有守护链时，优先复用它
+2. **sub-agent 执行单元**
+   - 适合编码、实现、审计、结构化任务
+3. **background exec**
+   - 仅在必须使用宿主后台进程时兜底
 
-### 1) Decide if the task is guarded
+## 标准工作流
 
-If the task is long, multi-step, retry-prone, or user-visible as a tracked job, run it through Guardian Executor.
+### 1）先判断是否要走守护执行
 
-### 2) Create a durable status record
+如果任务是长、复杂、易失败、可恢复需求强，就应进入 Guardian Executor 工作流。
 
-Write or update a task entry in:
+### 2）先落状态，再开始执行
 
-- `memory/task-state.json`, or
-- a project-local runtime/status file, or
-- both, when the work is important
+在真正执行前，写入或更新至少一个可恢复状态位，例如：
 
-Read `references/task-state-schema.md` for the minimum schema.
+- `memory/task-state.json`
+- 项目级 `runtime/*.json`
+- `SESSION_SNAPSHOT.md`
+- 专项 checkpoint 文件
 
-### 3) Start the execution unit
+状态结构参考：
+- `references/task-state-schema.md`
 
-For coding and agentic work, prefer `sessions_spawn`.
+### 3）创建执行单元
 
-The kickoff update should tell the user only:
+对编码 / 多步骤实现类工作，优先使用 `sessions_spawn`。  
+如果项目已有 guardian 任务，就直接复用 guardian 常驻链。  
+只有在必须跑宿主进程时，才使用后台 `exec`。
 
-- objective
-- execution mode
-- where status is tracked
-- what completion report will include
+### 4）避免紧轮询
 
-Keep kickoff updates short.
+不要为了“看起来在跟进”而频繁轮询。  
+优先使用：
 
-### 4) Avoid tight polling
+- 推送式完成事件
+- 粗粒度状态检查
+- 长超时 poll
 
-Do **not** burn turns with constant polling.
-Prefer:
+### 5）必须验证后再回报完成
 
-- push-based child completion events
-- coarse status checks only when useful
-- long-timeout `process poll` if background exec must be checked
+可接受的验证方式包括：
 
-### 5) Verify before claiming done
+- build / test 通过
+- API 返回 200
+- 服务状态 active
+- 目标文件存在
+- 状态文件显示成功
+- 代码任务有真实 commit
 
-Before reporting completion, confirm the result with concrete checks such as:
+### 6）完成回报必须固定化
 
-- build/test success
-- API response
-- service status
-- file presence
-- log or state evidence
+一次性任务完成时，至少回报：
 
-### 6) Report in a fixed completion shape
+- 做了什么
+- 怎么验证的
+- commit id 或产出状态
+- blocker / 剩余风险
 
-For one-shot tasks, completion updates should include:
+模板见：
+- `references/reporting-templates.md`
 
-- what changed
-- verification performed
-- commit id or output status
-- blocker status / remaining risks
+### 7）一次性任务完成后要清理
 
-Use the templates in `references/reporting-templates.md`.
+- 一次性任务：从活跃执行单元中剔除，或标记 completed
+- 常驻任务：保留，并持续更新状态
 
-### 7) Clean up
+## Git 纪律
 
-If the execution unit is one-shot:
+对代码任务，必须遵守：
 
-- mark task state `completed` or remove it from the active registry
-- do not leave zombie task entries
+- 只 `git add` 明确目标文件
+- 不要 `git add .`
+- 不要没 commit 就说完成
+- 汇报时必须带最终 commit id
 
-If it is recurring:
+## 失败纪律
 
-- keep the entry
-- keep status queryable
+如果任务失败：
 
-## Git discipline
+- 保留状态文件
+- 记录最后错误
+- 记录下一步重试时间或人工下一步
+- 如实汇报，不要假装“快好了”
 
-For coding tasks:
+## 参考资料
 
-- stage only explicit target files
-- avoid broad `git add .`
-- report the final commit id
-- do not claim completion without a real commit when the task requires code changes
+按需加载：
 
-## Failure discipline
-
-If the job fails:
-
-- keep the state record
-- record the last error
-- record next retry / manual next step
-- report failure honestly instead of silently retrying forever without visibility
-
-## References
-
-Load these only when needed:
-
-- `references/task-lifecycle.md` — detailed execution flow
-- `references/task-state-schema.md` — durable status schema
-- `references/reporting-templates.md` — kickoff / progress / completion templates
+- `references/task-lifecycle.md`：任务生命周期
+- `references/task-state-schema.md`：状态文件结构
+- `references/reporting-templates.md`：启动 / 进度 / 完成 / 失败模板

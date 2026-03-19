@@ -1,17 +1,17 @@
-# Task Lifecycle
+# 任务生命周期
 
-## 1. Intake
+## 1. 任务进入
 
-Classify the request:
+先把任务分成两类：
 
-- **inline**: quick read-only, small answer, trivial edit
-- **guardian-executor**: long, multi-step, retry-prone, or background-worthy
+- **inline**：只读、很短、一步完成
+- **guardian-executor**：长、多步骤、易失败、需要恢复能力
 
-## 2. State creation
+## 2. 状态初始化
 
-Before real work starts, create a durable task record.
+正式执行前，先写一个可恢复状态记录。
 
-Minimum fields:
+最低字段建议包括：
 
 - `task_id`
 - `objective`
@@ -25,54 +25,54 @@ Minimum fields:
 - `next_retry_at`
 - `checkpoint_file`
 - `executor`
-- `session_key` or `process_id` if available
+- `session_key` 或 `process_id`
 
-## 3. Execution choice
+## 3. 选择执行模式
 
-### Prefer project guardian/runtime
-Use when the repo already has registered long-running tasks.
+### 优先：项目已有 guardian / runtime
+适合项目已经有注册好的守护链。
 
-### Prefer sub-agent session
-Use for coding, audits, implementation, or other bounded agentic tasks.
+### 其次：sub-agent 执行单元
+适合编码、实现、审计、结构化多步骤任务。
 
-### Prefer background exec
-Use when a literal shell process must survive the current turn.
+### 最后：background exec
+适合必须以宿主后台进程方式持续运行的任务。
 
-## 4. Progress handling
+## 4. 进度处理
 
-- do not spam progress
-- only send user-visible updates at meaningful milestones
-- keep detailed state in files, not in chat only
+- 不要刷屏式汇报
+- 只有在真正跨过阶段点时再汇报
+- 详细状态尽量写入文件，不要只留在聊天里
 
-## 5. Verification
+## 5. 验证
 
-Examples:
+常见验证包括：
 
-- build passes
-- endpoint returns 200
-- service is active
-- task state shows success
-- required files exist
-- repo has a real commit
+- build 通过
+- test 通过
+- 接口返回 200
+- 服务 active
+- 目标文件存在
+- git commit 存在
 
-## 6. Completion
+## 6. 完成
 
-For one-shot jobs, report:
+一次性任务完成时，应回报：
 
-- final outcome
-- concrete verification
-- commit id / output status
-- blockers or none
+- 最终结果
+- 具体验证
+- commit id / 服务状态 / 输出状态
+- blocker 或明确无 blocker
 
-Then mark the task completed or remove it from the active queue.
+然后把任务从活跃执行单元中清理掉，或标记为 completed。
 
-## 7. Retry behavior
+## 7. 重试与恢复
 
-If upstream or runtime errors occur:
+如果任务失败：
 
-- preserve the task record
-- increment attempt count
-- set `next_retry_at`
-- record a checkpoint or partial result when available
+- 保留状态记录
+- attempt_count +1
+- 写入 `next_retry_at`
+- 如果有阶段成果，写入 checkpoint
 
-Never hide that the task is still unresolved.
+不要隐藏“任务尚未完成”这一事实。
