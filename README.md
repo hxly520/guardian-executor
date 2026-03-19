@@ -26,6 +26,18 @@ If a request will involve execution work, the main session should mainly do four
 
 The execution unit does the actual work.
 
+## Routing rule
+
+**Guardian-first does not mean “throw everything to the nearest execution unit.”**
+
+For cross-layer requests, do owner-aware routing first:
+
+- UI-only work can go directly to a frontend/page execution unit
+- naming, semantics, factor explanation, strategy attribution, data meaning, backend artifact naming, or owner confirmation must go to the responsible owner agent first
+- mixed requests must be split: upstream owner work first, downstream presentation work second
+
+Detailed routing guidance lives in [`references/task-routing.md`](./references/task-routing.md).
+
 ## Why this exists
 
 Inline execution is fine for tiny read-only questions.
@@ -55,6 +67,7 @@ So the practical rule is:
 - `SKILL.md` — skill definition and strict workflow
 - `README.zh-CN.md` — Chinese public documentation
 - `README.en.md` — English public documentation
+- `references/task-routing.md` — owner-aware routing guidance
 - `references/task-lifecycle.md` — lifecycle guidance
 - `references/task-state-schema.md` — durable state schema
 - `references/reporting-templates.md` — reporting templates

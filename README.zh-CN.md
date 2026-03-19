@@ -56,6 +56,18 @@ GitHub 仓库：<https://github.com/hxly520/guardian-executor>
 
 真正的执行工作应留在执行单元内完成。
 
+### guardian-first 不等于就近乱投
+
+guardian-first 的意思不是“反正先开个执行单元，然后把需求整包丢给最近的前端或实现单元”。
+
+如果请求是跨层任务，必须先做 owner-aware routing：
+
+- 纯 UI / 展示层任务，可以直接交给前端 / 页面执行单元
+- 只要涉及命名标准化、业务语义、因子解释、策略归因、数据含义、后端产物命名、owner 确认，就必须先交给对应 owner agent
+- 混合需求必须拆成上游 owner 单元 + 下游展示单元，不能整包交给一个前端子会话
+
+细则放在：[`references/task-routing.md`](./references/task-routing.md)
+
 ---
 
 ## 什么时候适合用
@@ -177,6 +189,7 @@ GitHub 仓库：<https://github.com/hxly520/guardian-executor>
 - `README.md`：入口页
 - `README.zh-CN.md`：中文说明
 - `README.en.md`：英文说明
+- `references/task-routing.md`：任务归属判断与 owner-aware routing
 - `references/task-lifecycle.md`：任务生命周期
 - `references/task-state-schema.md`：状态结构建议
 - `references/reporting-templates.md`：启动 / 进度 / 完成 / 失败模板

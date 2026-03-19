@@ -41,7 +41,38 @@ description: Guardian-first detached execution workflow for any task that will i
 
 如果后续会发生执行、探测、诊断、API、脚本、服务、构建、同步、抓取、批处理等动作，直接进入 Guardian Executor 工作流。
 
-### 2）先创建执行单元
+### 2）先做任务归属判断（owner-aware routing）
+
+在创建执行单元之前，必须先判断任务属于哪一层，禁止把跨层需求整包丢给“最近看起来能改的人”。
+
+按下面规则硬判断：
+
+1. **UI-only / 展示层任务**
+   - 只涉及视觉样式、排版、前端展示文案落位、页面交互、组件布局、展示层映射。
+   - 不改变业务语义，不重新定义字段含义，不决定名称标准，不解释策略/因子逻辑。
+   - 这类任务可以直接路由给前端 / 页面执行单元。
+
+2. **Domain-owned / 语义归属任务**
+   - 只要需求涉及以下任一项，就不能直接交给前端执行单元：
+     - 名称标准化 / 命名收敛
+     - 业务语义定义
+     - 因子解释 / 指标解释 / 策略归因
+     - 数据含义、口径、后端产物命名
+     - owner 确认、责任域确认
+     - “这个东西为什么这样命名 / 怎么挖掘出来 / 基于什么分析”
+   - 这类任务必须先路由给对应 owner agent 或领域执行单元，由其产出统一命名、定义、说明、语义边界。
+   - 在 owner 产出之前，前端执行单元不得自行拍脑袋定义 display label、解释文案或语义映射。
+
+3. **Mixed cross-layer / 混合跨层任务**
+   - 既包含上游语义/逻辑定义，又包含下游页面适配、展示消费、UI 落位时，必须拆单。
+   - 固定拆法：
+     1. 先创建上游 owner 执行单元，完成命名、定义、解释、归因、口径确认。
+     2. 再创建下游前端执行单元，消费上游产物做页面适配与展示。
+   - 禁止把混合需求整包交给单一前端子会话，也禁止让前端先做一版“临时显示名”再倒逼上游对齐。
+
+如果无法明确 owner，先补做 owner 判断，再开执行单元；不要默认前端兜底。
+
+### 3）先创建执行单元
 
 优先级固定如下：
 
@@ -54,7 +85,7 @@ description: Guardian-first detached execution workflow for any task that will i
 
 在执行单元创建之前，主会话不要做实质性 probe、diagnose、API 调用或脚本执行。
 
-### 3）在执行单元内初始化状态
+### 4）在执行单元内初始化状态
 
 执行单元开始后，先写入或更新至少一个可恢复状态位，例如：
 
@@ -66,7 +97,7 @@ description: Guardian-first detached execution workflow for any task that will i
 状态结构参考：
 - `references/task-state-schema.md`
 
-### 4）在执行单元内完成所有探测与执行
+### 5）在执行单元内完成所有探测与执行
 
 以下动作都应在执行单元内部发生，而不是主会话：
 
@@ -77,7 +108,7 @@ description: Guardian-first detached execution workflow for any task that will i
 - 数据抓取 / 回填 / 迁移 / 同步
 - 修复、验证、重试
 
-### 5）避免紧轮询
+### 6）避免紧轮询
 
 不要为了“看起来在跟进”而频繁轮询。
 优先使用：
@@ -86,7 +117,7 @@ description: Guardian-first detached execution workflow for any task that will i
 - 粗粒度状态检查
 - 长超时 poll
 
-### 6）验证后再宣布完成
+### 7）验证后再宣布完成
 
 可接受的验证方式包括：
 
@@ -97,7 +128,7 @@ description: Guardian-first detached execution workflow for any task that will i
 - 状态文件显示成功
 - 代码任务有真实 commit
 
-### 7）由主会话做最终回报
+### 8）由主会话做最终回报
 
 执行单元完成后，主会话统一向用户回报至少这些内容：
 
@@ -109,7 +140,7 @@ description: Guardian-first detached execution workflow for any task that will i
 模板见：
 - `references/reporting-templates.md`
 
-### 8）一次性任务完成后清理
+### 9）一次性任务完成后清理
 
 - 一次性任务：从活跃执行单元中剔除，或标记 completed
 - 常驻任务：保留，并持续更新状态
@@ -136,6 +167,7 @@ description: Guardian-first detached execution workflow for any task that will i
 
 按需加载：
 
+- `references/task-routing.md`：任务归属判断与 owner-aware routing
 - `references/task-lifecycle.md`：任务生命周期
 - `references/task-state-schema.md`：状态文件结构
 - `references/reporting-templates.md`：启动 / 进度 / 完成 / 失败模板

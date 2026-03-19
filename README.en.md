@@ -59,6 +59,18 @@ The main session should mostly do four things:
 
 The execution unit does the real operational work.
 
+### Guardian-first is not nearest-unit dumping
+
+Guardian-first does **not** mean “open any nearby execution unit and throw the whole request there.”
+
+For cross-layer requests, do owner-aware routing first:
+
+- UI-only work can go directly to a frontend/page execution unit
+- naming standardization, business semantics, factor explanation, strategy attribution, data meaning, backend artifact naming, or owner confirmation must go to the responsible owner agent first
+- mixed requests must be split into upstream owner work first and downstream presentation work second
+
+See [`references/task-routing.md`](./references/task-routing.md) for the strict routing rules.
+
 ---
 
 ## When to use it
@@ -183,6 +195,7 @@ It is:
 - `README.md` — entry page
 - `README.zh-CN.md` — Chinese documentation
 - `README.en.md` — English documentation
+- `references/task-routing.md` — owner-aware routing guidance
 - `references/task-lifecycle.md` — lifecycle guidance
 - `references/task-state-schema.md` — durable state schema
 - `references/reporting-templates.md` — reporting templates
