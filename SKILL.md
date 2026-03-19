@@ -108,7 +108,7 @@ description: Guardian-first detached execution workflow for any task that will i
 - 数据抓取 / 回填 / 迁移 / 同步
 - 修复、验证、重试
 
-### 6）避免紧轮询
+### 7）避免紧轮询
 
 不要为了“看起来在跟进”而频繁轮询。
 优先使用：

@@ -29,11 +29,13 @@ The execution unit does the actual work.
 ## Routing rule
 
 **Guardian-first does not mean “throw everything to the nearest execution unit.”**
+It also does not mean “always open a brand-new child task.”
 
-For cross-layer requests, do owner-aware routing first:
+For cross-layer requests, do owner-aware routing first, then choose the dispatch mode:
 
 - UI-only work can go directly to a frontend/page execution unit
 - naming, semantics, factor explanation, strategy attribution, data meaning, backend artifact naming, or owner confirmation must go to the responsible owner agent first
+- if a responsible owner agent or existing guardian runtime already exists, prefer dispatching there directly instead of spawning a generic new child task
 - mixed requests must be split: upstream owner work first, downstream presentation work second
 
 Detailed routing guidance lives in [`references/task-routing.md`](./references/task-routing.md).
