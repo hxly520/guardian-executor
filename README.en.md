@@ -54,7 +54,7 @@ The main session should mostly do four things:
 
 1. accept the request
 2. break down the work
-3. create the execution unit
+3. choose the execution mode and dispatch channel
 4. report the result back to the user
 
 The execution unit does the real operational work.
@@ -69,9 +69,24 @@ For cross-layer requests, do owner-aware routing first, then choose the dispatch
 - UI-only work can go directly to a frontend/page execution unit
 - naming standardization, business semantics, factor explanation, strategy attribution, data meaning, backend artifact naming, or owner confirmation must go to the responsible owner agent first
 - if a responsible owner agent or existing guardian runtime already exists, prefer dispatching to that runtime directly instead of spawning a generic new child task
+- if there is no reusable owner/runtime and the task will enter execution mode, open a dedicated execution unit
+- only keep work inline when it is pure read / pure clarification / no-recovery-value micro-work
 - mixed requests must be split into upstream owner work first and downstream presentation work second
 
 See [`references/task-routing.md`](./references/task-routing.md) for the strict routing rules.
+
+### Recovery-first and learning-enabled
+
+The skill now also treats interruption handling and self-improvement as built-in behavior:
+
+- detect stale work from task state, runtime files, checkpoints, snapshots, and logs
+- recover from durable state first instead of replaying long chat context
+- write back learnings when routing, dispatch, or recovery decisions were wrong
+
+See:
+
+- [`references/interruption-and-recovery.md`](./references/interruption-and-recovery.md)
+- [`references/learning-loop.md`](./references/learning-loop.md)
 
 ---
 
@@ -123,13 +138,15 @@ If the next steps will involve any of the following:
 then do **not** probe inline first.
 Go straight into the guardian workflow.
 
-### 2. Create the execution unit first
+### 2. Choose the execution mode first
 
-Recommended priority order:
+Only three modes are allowed:
 
-1. reuse an existing project guardian/runtime task
-2. create a sub-agent execution unit
-3. fall back to background exec only when host-level execution is required
+1. dispatch directly to an existing owner agent / guardian runtime
+2. open a dedicated execution unit (prefer sub-agent, use background exec only when required)
+3. allow extremely light inline handling only for pure read / pure clarification / no-recovery-value micro-work
+
+If in doubt, do not keep it inline.
 
 ### 3. Initialize durable state inside the execution unit
 
@@ -200,6 +217,8 @@ It is:
 - `references/task-routing.md` — owner-aware routing guidance
 - `references/task-lifecycle.md` — lifecycle guidance
 - `references/task-state-schema.md` — durable state schema
+- `references/interruption-and-recovery.md` — interruption detection and recovery guidance
+- `references/learning-loop.md` — post-execution review and rule-learning guidance
 - `references/reporting-templates.md` — reporting templates
 
 ---

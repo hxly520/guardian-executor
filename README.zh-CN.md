@@ -51,7 +51,7 @@ GitHub 仓库：<https://github.com/hxly520/guardian-executor>
 
 1. 接收任务
 2. 做必要拆解
-3. 创建执行单元
+3. 判断执行方式并选择执行通道
 4. 汇报最终结果
 
 真正的执行工作应留在执行单元内完成。
@@ -61,13 +61,29 @@ GitHub 仓库：<https://github.com/hxly520/guardian-executor>
 guardian-first 的意思不是“反正先开个执行单元，然后把需求整包丢给最近的前端或实现单元”。
 也不是“凡事都先新开一个子任务，再说”。
 
-如果请求是跨层任务，必须先做 owner-aware routing：
+如果请求是跨层任务，必须先做 owner-aware routing，再决定执行方式：
 
-- 纯 UI / 展示层任务，可以直接交给前端 / 页面执行单元
+- 纯 UI / 展示层任务，可以直接交给前端 / 页面 owner
 - 只要涉及命名标准化、业务语义、因子解释、策略归因、数据含义、后端产物命名、owner 确认，就必须先交给对应 owner agent
+- 如果负责该任务的 owner agent 或 guardian runtime 已存在，优先直调，不要机械新开 generic 子任务
+- 如果没有可复用链路，且任务会进入执行态，再新开专用执行单元
+- 只有纯读取 / 纯澄清 / 无恢复价值的极小动作，才允许 inline
 - 混合需求必须拆成上游 owner 单元 + 下游展示单元，不能整包交给一个前端子会话
 
 细则放在：[`references/task-routing.md`](./references/task-routing.md)
+
+### 恢复优先，不靠重放聊天补命
+
+这个 skill 现在还把“中断检测、恢复导向、持续学习”一起固化了：
+
+- 用 task-state、runtime、checkpoint、snapshot、logs 判断任务是否 stale
+- 恢复时优先从状态继续，而不是重跑整段聊天上下文
+- 当发生误路由、误判执行方式、恢复失败、重复重试时，要把 learnings 回写成规则
+
+细节下沉到：
+
+- [`references/interruption-and-recovery.md`](./references/interruption-and-recovery.md)
+- [`references/learning-loop.md`](./references/learning-loop.md)
 
 ---
 
@@ -85,7 +101,7 @@ guardian-first 的意思不是“反正先开个执行单元，然后把需求�
 
 一句话判断：
 
-**只要任务后面会“真的动起来”，而不是只读，只答，就应该优先走 guardian-first。**
+**只要任务后面会“真的动起来”，而不是只读、只答，就应该优先走 guardian-first。**
 
 ---
 
@@ -117,13 +133,15 @@ guardian-first 的意思不是“反正先开个执行单元，然后把需求�
 
 那就不在主会话里先跑一轮，而是直接进入 guardian 流程。
 
-### 2. 先创建执行单元
+### 2. 先选执行方式
 
-推荐优先级：
+固定只允许三类方式：
 
-1. 复用已有项目 guardian / runtime task
-2. 创建 sub-agent 执行单元
-3. 必要时才用 background exec
+1. 直接调度已有 owner agent / guardian runtime
+2. 新开专用执行单元（优先 sub-agent，必要时 background exec）
+3. 极轻量 inline（仅限纯读取 / 纯澄清 / 无恢复价值微动作）
+
+只要拿不准，就不要 inline。
 
 ### 3. 在执行单元里写状态
 
@@ -193,6 +211,8 @@ guardian-first 的意思不是“反正先开个执行单元，然后把需求�
 - `references/task-routing.md`：任务归属判断与 owner-aware routing
 - `references/task-lifecycle.md`：任务生命周期
 - `references/task-state-schema.md`：状态结构建议
+- `references/interruption-and-recovery.md`：中断检测与恢复规则
+- `references/learning-loop.md`：执行后复盘与规则学习闭环
 - `references/reporting-templates.md`：启动 / 进度 / 完成 / 失败模板
 
 ---
@@ -217,15 +237,6 @@ guardian-first 的意思不是“反正先开个执行单元，然后把需求�
 - 用复杂框架包装极小任务
 
 它追求的是一件更朴素的事：
-
-**让执行型任务从一开始就走正确的执行通道。**
-
----
-
-## License
-
-MIT
-�素的事：
 
 **让执行型任务从一开始就走正确的执行通道。**
 

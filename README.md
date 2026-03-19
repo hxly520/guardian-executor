@@ -21,12 +21,12 @@ If a request will involve execution work, the main session should mainly do four
 
 1. accept the task
 2. break it down
-3. create the execution unit
+3. choose the execution mode and execution channel
 4. report the final result
 
 The execution unit does the actual work.
 
-## Routing rule
+## Routing and dispatch rule
 
 **Guardian-first does not mean “throw everything to the nearest execution unit.”**
 It also does not mean “always open a brand-new child task.”
@@ -36,9 +36,24 @@ For cross-layer requests, do owner-aware routing first, then choose the dispatch
 - UI-only work can go directly to a frontend/page execution unit
 - naming, semantics, factor explanation, strategy attribution, data meaning, backend artifact naming, or owner confirmation must go to the responsible owner agent first
 - if a responsible owner agent or existing guardian runtime already exists, prefer dispatching there directly instead of spawning a generic new child task
+- if there is no reusable owner/runtime and the task will enter execution mode, open a dedicated execution unit
+- only keep work inline when it is pure read / pure clarification / no-recovery-value micro-work
 - mixed requests must be split: upstream owner work first, downstream presentation work second
 
 Detailed routing guidance lives in [`references/task-routing.md`](./references/task-routing.md).
+
+## Recovery-first, not chat-replay-first
+
+The skill now also treats interruption handling as a first-class concern:
+
+- detect stale work from task state, runtime files, checkpoints, snapshots, and logs
+- recover from durable state first instead of replaying long chat context
+- write back learnings when routing, dispatch, or recovery decisions were wrong
+
+The detail is intentionally kept in references:
+
+- [`references/interruption-and-recovery.md`](./references/interruption-and-recovery.md)
+- [`references/learning-loop.md`](./references/learning-loop.md)
 
 ## Why this exists
 
@@ -72,6 +87,8 @@ So the practical rule is:
 - `references/task-routing.md` — owner-aware routing guidance
 - `references/task-lifecycle.md` — lifecycle guidance
 - `references/task-state-schema.md` — durable state schema
+- `references/interruption-and-recovery.md` — interruption detection and recovery guidance
+- `references/learning-loop.md` — post-execution review and rule-learning guidance
 - `references/reporting-templates.md` — reporting templates
 
 ## Repository
